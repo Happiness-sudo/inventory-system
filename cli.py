@@ -19,10 +19,14 @@ while True:
     elif choice == "2":
         name = input("Name: ")
         brand = input("Brand: ")
+        price = input("Price: ")
+        stock = input("Stock: ")
 
         res = requests.post(BASE + "/items", json={
             "name": name,
-            "brand": brand
+            "brand": brand,
+            "price": price,
+            "stock": stock
         })
 
         print(res.json())
@@ -31,10 +35,14 @@ while True:
         item_id = input("ID: ")
         name = input("New name: ")
         brand = input("New brand: ")
+        price = input("New price: ")
+        stock = input("New stock: ")
 
         res = requests.patch(BASE + "/items/" + item_id, json={
             "name": name,
-            "brand": brand
+            "brand": brand,
+            "price": price,
+            "stock": stock
         })
 
         print(res.json())

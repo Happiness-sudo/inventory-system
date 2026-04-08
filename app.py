@@ -3,12 +3,10 @@ import requests
 
 app = Flask(__name__)
 
-# simple storage
 items = []
 next_id = 1
 
 
-# home
 @app.route('/')
 def home():
     return {"message": "API is working"}
@@ -39,13 +37,15 @@ def add_item():
     new_item = {
         "id": next_id,
         "name": data.get("name"),
-        "brand": data.get("brand")
+        "brand": data.get("brand"),
+        "price": data.get("price", 0),
+        "stock": data.get("stock", 0)
     }
 
     items.append(new_item)
     next_id += 1
 
-    return jsonify(new_item)
+    return new_item
 
 
 # UPDATE item
@@ -57,6 +57,8 @@ def update_item(item_id):
         if item["id"] == item_id:
             item["name"] = data.get("name", item["name"])
             item["brand"] = data.get("brand", item["brand"])
+            item["price"] = data.get("price", item["price"])
+            item["stock"] = data.get("stock", item["stock"])
             return item
 
     return {"error": "not found"}, 404
@@ -73,22 +75,31 @@ def delete_item(item_id):
     return {"error": "not found"}, 404
 
 
-# FETCH + ADD from OpenFoodFacts
+# FETCH FROM EXTERNAL API (FIXED)
 @app.route('/fetch/<barcode>', methods=['GET'])
 def fetch_product(barcode):
     global next_id
 
     url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
-    res = requests.get(url)
-    data = res.json()
 
-    if data["status"] == 1:
-        product = data["product"]
+    try:
+        res = requests.get(url, headers={"User-Agent": "inventory-app"})
+        data = res.json()
+
+        if data.get("status") != 1:
+            return {"error": "product not found"}, 404
+
+        product = data.get("product", {})
+
+        name = product.get("product_name", "Unknown")
+        brand = product.get("brands", "Unknown")
 
         new_item = {
             "id": next_id,
-            "name": product.get("product_name"),
-            "brand": product.get("brands")
+            "name": name,
+            "brand": brand,
+            "price": 0,   # default
+            "stock": 0    # default
         }
 
         items.append(new_item)
@@ -96,7 +107,8 @@ def fetch_product(barcode):
 
         return new_item
 
-    return {"error": "not found"}, 404
+    except:
+        return {"error": "failed to fetch"}, 500
 
 
 if __name__ == '__main__':
